@@ -1,0 +1,19 @@
+CREATE OR REPLACE VIEW "mart_fixture_general_info" AS 
+SELECT
+  FIXTURE_ID
+, REFEREE
+, fixture_date FIXTURE_DATETIME
+, VENUE_NAME
+, VENUE_CITY
+, status_long MATCH_STATUS
+, LEAGUE_NAME
+, LEAGUE_COUNTRY
+, LEAGUE_LOGO
+, SEASON
+, ROUND
+, HOME_TEAM_NAME
+, HOME_TEAM_LOGO
+, AWAY_TEAM_NAME
+, AWAY_TEAM_LOGO
+FROM
+  daily_fixtures_db.v_fixture_details
