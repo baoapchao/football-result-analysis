@@ -74,7 +74,7 @@ def generate_dates(start_date, end_date):
     date_list = [(start + timedelta(days=i)).strftime("%Y-%m-%d") for i in range(delta.days + 1)]
     return date_list
 
-def file_exists_in_s3_check_contains_string(bucket, prefix, string):
+def file_exists_in_s3_check_contains_string(prefix, string):
     """Check if the specified string is in any filenames in the S3 folder."""
     try:
         response = s3.list_objects_v2(Bucket=bucket, Prefix=prefix)
@@ -87,7 +87,7 @@ def file_exists_in_s3_check_contains_string(bucket, prefix, string):
         print(f"Error checking string in S3: {e}")
         return False
 
-def file_exists_locally(fixture_id, folder_path):
+def file_exists_locally(folder_path, fixture_id):
     """Check if any fixture details file containing fixture_id exists in local Windows folder."""
     for filename in os.listdir(folder_path):
         if fixture_id in filename and filename.endswith('.json'):
@@ -204,7 +204,7 @@ def get_fixture_details_half_to_s3_json_file(id, write_folder):
         print(f"Request failed with status code {response.status_code}")
 
 # For backfill
-def get_all_fixture_ids_from_folder(read_folder):
+def get_all_fixture_ids_from_local_folder(read_folder):
     fixture_ids = []
 
     # Loop through all files in the folder
@@ -236,6 +236,45 @@ def get_all_fixture_ids_from_folder(read_folder):
                             and (datetime.fromisoformat(item.get("fixture", {}).get("date"))).date() >= datetime.strptime("2025-11-01", r"%Y-%m-%d").date()
                             # and (datetime.fromisoformat(item.get("fixture", {}).get("date"))).date() <= datetime.strptime("2025-11-25", r"%Y-%m-%d").date()
                             ]
+        
+            fixture_ids.extend(ids)
+
+    return fixture_ids
+
+def get_all_fixture_ids_from_s3_folder(read_folder):
+    fixture_ids = []
+
+    # Loop through all files in the folder
+    response = s3.list_objects_v2(Bucket=bucket, Prefix=read_folder)
+
+    latest_folder_modified_datetime = get_latest_modified_datetime(os.path.join(os.path.dirname(__file__), "..", "data", read_folder))
+
+    for obj in response.get("Contents", []):
+        key = obj["Key"]
+        s3_last_modified = obj["LastModified"]
+
+        # Skip folder "key"
+        if key.endswith("/"):
+            continue
+
+        if key.endswith(".json"):
+            print("Loading:", key)
+
+            # Read file content
+            file_obj = s3.get_object(Bucket=bucket, Key=key)
+            content = file_obj["Body"].read().decode("utf-8")
+
+            # Convert to Python dict/list
+            data = json.loads(content)
+
+            ids = [
+                    item["fixture"]["id"] 
+                    for item in data.get("response", []) 
+                    if item.get("league", {}).get("id") in leagues
+                        and item.get("fixture", {}).get("status", {}).get("long") == 'Match Finished'
+                        and (datetime.fromisoformat(item.get("fixture", {}).get("date"))).date() >= datetime.strptime("2025-11-01", r"%Y-%m-%d").date()
+                        # and (datetime.fromisoformat(item.get("fixture", {}).get("date"))).date() <= datetime.strptime("2025-11-25", r"%Y-%m-%d").date()
+                        ]
         
             fixture_ids.extend(ids)
 

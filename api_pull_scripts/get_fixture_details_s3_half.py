@@ -1,12 +1,12 @@
 from datetime import date, datetime, timedelta
-
+import time
 import common_functions
 
 all_ids = common_functions.get_all_fixture_ids_from_folder('daily_fixtures')
 
 print("All IDs:", all_ids)
 
-missing_ids = [str(id) for id in all_ids if not common_functions.file_exists_in_s3_check_contains_string(bucket, 'fixture_details_half', str(id))]
+missing_ids = [str(id) for id in all_ids if not common_functions.file_exists_in_s3_check_contains_string('fixture_details_half', str(id))]
 
 print("Missing IDs:", missing_ids)
 
